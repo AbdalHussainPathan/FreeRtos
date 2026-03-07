@@ -1,1 +1,21 @@
-/Debug/
+# build files
+build/
+Debug/
+Release/
+
+# object files
+*.o
+*.d
+
+# binaries
+*.elf
+*.bin
+*.hex
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
