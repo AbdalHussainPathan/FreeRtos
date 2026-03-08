@@ -60,7 +60,7 @@ static void led_green_handler(void* parameters);
 static void led_orange_handler(void* parameters);
 static void led_red_handler(void* parameters);
 
-//extern void SEGGER_UART_init(uint32_t);
+extern void SEGGER_UART_init(uint32_t);
 
 /* USER CODE END PFP */
 
