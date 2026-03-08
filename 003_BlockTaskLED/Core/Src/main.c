@@ -6,12 +6,13 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
+  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
   */
@@ -22,6 +23,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+
+#include "FreeRTOS.h"
+#include "task.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,7 +36,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -43,12 +47,20 @@
 
 /* USER CODE BEGIN PV */
 
+#define DWT_CTRL    (*(volatile uint32_t*)0xE0001000)
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
+
+static void led_green_handler(void* parameters);
+static void led_orange_handler(void* parameters);
+static void led_red_handler(void* parameters);
+
+extern void SEGGER_UART_init(uint32_t);
 
 /* USER CODE END PFP */
 
@@ -65,6 +77,10 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+	TaskHandle_t task1_handle;
+	TaskHandle_t task2_handle;
+	TaskHandle_t task3_handle;
+	BaseType_t status;
 
   /* USER CODE END 1 */
 
@@ -87,6 +103,28 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
+
+  SEGGER_UART_init(500000);
+
+  //CYCLCNT enable
+  DWT_CTRL |= ( 1 << 0);
+
+  SEGGER_SYSVIEW_Conf();
+
+  status = xTaskCreate(led_green_handler, "LED_green_task", 200, NULL, 2, &task1_handle);
+
+  configASSERT(status == pdPASS);
+
+  status = xTaskCreate(led_red_handler, "LED_red_task", 200,NULL, 2, &task2_handle);
+
+  configASSERT(status == pdPASS);
+
+  status = xTaskCreate(led_orange_handler, "LED_orange_task", 200, NULL, 2, &task3_handle);
+
+  configASSERT(status == pdPASS);
+
+  //start the freeRTOS scheduler
+  vTaskStartScheduler();
 
   /* USER CODE END 2 */
 
@@ -293,7 +331,61 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+static void led_green_handler(void* parameters)
+{
+	while(1)
+	{
+		SEGGER_SYSVIEW_PrintfTarget("Toggling green LED");
+		//printf("Toggling green LED\n");
+		HAL_GPIO_TogglePin(GPIOD, LED_GREEN_PIN);
+		HAL_Delay(1000);
+		//taskYIELD();
+	}
+}
+static void led_orange_handler(void* parameters)
+{
+	while(1)
+	{
+		SEGGER_SYSVIEW_PrintfTarget("Toggling orange LED");
+		HAL_GPIO_TogglePin(GPIOD, LED_ORANGE_PIN);
+		HAL_Delay(800);
+		//taskYIELD();
+	}
+}
+static void led_red_handler(void* parameters)
+{
+	while(1)
+	{
+		SEGGER_SYSVIEW_PrintfTarget("Toggling red LED");
+		HAL_GPIO_TogglePin(GPIOD, LED_RED_PIN);
+		HAL_Delay(400);
+		//taskYIELD();
+	}
+}
+
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
@@ -303,10 +395,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+
   /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
@@ -321,7 +410,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
